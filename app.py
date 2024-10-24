@@ -19,11 +19,10 @@ CORS(app)
 
 # Función para autenticar con Google Drive usando credenciales de servicio
 def authenticate_drive():
-    # Obtener el contenido de las credenciales desde una variable de entorno
     credentials_json = os.getenv('GOOGLE_CREDENTIALS')
     if not credentials_json:
         raise Exception("Las credenciales de Google no están configuradas.")
-
+    
     credentials_dict = json.loads(credentials_json)
     scope = ['https://www.googleapis.com/auth/drive.file']
     creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
@@ -36,7 +35,6 @@ def authenticate_drive():
 def detectar_Puntos_Faciales():
     drive = authenticate_drive()
 
-    # Cargar la imagen
     if 'file' not in request.files:
         return jsonify({'error': 'No se recibió correctamente la imagen'})
 
@@ -45,21 +43,27 @@ def detectar_Puntos_Faciales():
         return jsonify({'error': 'No se cargó ninguna imagen'})
 
     if archivo:
+        # Guardar el archivo temporalmente en el servidor
+        archivo.save(archivo.filename)
+
         # Subir la imagen a Google Drive
         file_drive = drive.CreateFile({'title': archivo.filename})
-        file_drive.SetContentFile(archivo)
+        file_drive.SetContentFile(archivo.filename)
         file_drive.Upload()
 
-        # Obtener el ID del archivo y construir la URL
-        file_id = file_drive.get('id')
+        # Eliminar el archivo localmente después de subirlo
+        os.remove(archivo.filename)
+
+        # Obtener el ID del archivo y construir la URL de descarga
+        file_id = file_drive['id']
         image_url = f'https://drive.google.com/uc?id={file_id}'
 
         # Descargar la imagen desde Google Drive
         response = requests.get(image_url)
         image = Image.open(io.BytesIO(response.content)).convert('RGB')
-        
-        # Procesar la imagen (ejemplo con MediaPipe)
-        # ... (tu código de detección de puntos faciales)
+
+        # Aquí va el procesamiento de la imagen con MediaPipe (detección de puntos faciales)
+        # ...
 
         return jsonify({'image_link': image_url})
 
