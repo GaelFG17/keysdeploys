@@ -1,27 +1,29 @@
-# Imagen base de Python
-FROM python:3.11-slim
+# Use Python 3.9 slim base image
+FROM python:3.9-slim
 
-# Instalar dependencias de sistema necesarias para OpenCV
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    libgl1-mesa-glx \
-    libgthread-2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Crear directorio de trabajo
+# Set working directory
 WORKDIR /app
 
-# Copiar los archivos del proyecto
-COPY . .
+# Install system dependencies required for OpenCV and MediaPipe
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instalar dependencias de Python
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exponer el puerto para Flask
-EXPOSE 8080
+# Copy the rest of the application
+COPY . .
 
-# Comando para iniciar la aplicación
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
+# Create uploads directory
+RUN mkdir -p static/uploads
+
+# Expose port 5000
+EXPOSE 5000
+
+# Command to run the application
+CMD ["python", "app.py"]
