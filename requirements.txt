@@ -12,7 +12,9 @@ google-auth
 google-auth-oauthlib
 google-auth-httplib2
 python-dotenv
-deepface
+deepface==0.0.79
+tensorflow-cpu==2.11.0
+protobuf==3.20.*
 imageio
 imageio-ffmpeg
 Pillow
