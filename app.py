@@ -31,11 +31,9 @@ FOLDER_ID = '1v8Xss5sKEEgyPHfEBtXYBTHtUevdrhjd'
 # Inicializar el servicio de Google Drive
 def obtener_servicio_drive():
     try:
-        creds = service_account.Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+        creds = service_account.Credentials.from_service_account_info(json.loads(CLIENT_SECRET_JSON), scopes=SCOPES)
         service = build('drive', 'v3', credentials=creds)
         return service
-    except FileNotFoundError:
-        raise Exception("El archivo de credenciales no fue encontrado. Verifica la ruta especificada.")
     except Exception as e:
         raise Exception(f"Error al cargar las credenciales: {e}")
 
