@@ -12,7 +12,7 @@ google-auth
 google-auth-oauthlib
 google-auth-httplib2
 python-dotenv
-fer==22.9.2
+fer
 imageio
 imageio-ffmpeg
 Pillow
