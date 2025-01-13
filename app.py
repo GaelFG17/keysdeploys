@@ -13,7 +13,7 @@ from googleapiclient.http import MediaIoBaseUpload
 from dotenv import load_dotenv
 from PIL import ImageEnhance
 import random
-from deepface import DeepFace  # Importar DeepFace
+from fer import FER  # Importar FER para detección de emociones
 
 app = Flask(__name__)
 CORS(app)
@@ -28,7 +28,6 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 # ID de la carpeta donde deseas subir la imagen
 FOLDER_ID = '1v8Xss5sKEEgyPHfEBtXYBTHtUevdrhjd'
 
-deepface_model = DeepFace.build_model("VGG-Face")
 
 # Inicializar el servicio de Google Drive
 def obtener_servicio_drive():
@@ -111,23 +110,17 @@ def detectar_puntos_y_procesar_imagenes():
         # Convertir la imagen mejorada a un array de NumPy
         image_np_mejorada = np.array(imagen_mejorada)
 
-        # Analizar emociones con DeepFace
-        resultado_emocion = DeepFace.analyze(
-            img_path=image_np_mejorada,
-            actions=['emotion'],
-            enforce_detection=False,
-            models={"emotion": deepface_model}
-        )
+        # Detectar emociones usando FER en la imagen mejorada
+        detector = FER(mtcnn=True)
+        emociones = detector.detect_emotions(image_np_mejorada)
 
-        # Accede al primer elemento de la lista y traduce la emoción
-        emocion_principal_en = resultado_emocion[0]['dominant_emotion']
-        emocion_principal = TRADUCCION_EMOCIONES.get(emocion_principal_en, emocion_principal_en)
+        if emociones:
+            emocion_principal_en = max(emociones[0]["emotions"], key=emociones[0]["emotions"].get)
+            emocion_principal = TRADUCCION_EMOCIONES.get(emocion_principal_en, emocion_principal_en)
+        else:
+            emocion_principal = "No se detectaron emociones"
     except Exception as e:
         emocion_principal = f"Error detectando emociones: {str(e)}"
-
-
-
-
 
     # Convertir las imágenes procesadas a base64
     def convertir_a_base64(imagen):
@@ -152,3 +145,6 @@ def detectar_puntos_y_procesar_imagenes():
         'dominant_emotion': emocion_principal,
         'drive_id': archivo_drive_subido.get('id')
     })
+
+if __name__ == '__main__':
+    app.run(debug=True)
