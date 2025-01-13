@@ -30,10 +30,14 @@ FOLDER_ID = '1v8Xss5sKEEgyPHfEBtXYBTHtUevdrhjd'
 
 # Inicializar el servicio de Google Drive
 def obtener_servicio_drive():
-    creds = service_account.Credentials.from_service_account_info(
-        json.loads(CLIENT_SECRET_JSON), scopes=SCOPES)
-    service = build('drive', 'v3', credentials=creds)
-    return service
+    try:
+        creds = service_account.Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+        service = build('drive', 'v3', credentials=creds)
+        return service
+    except FileNotFoundError:
+        raise Exception("El archivo de credenciales no fue encontrado. Verifica la ruta especificada.")
+    except Exception as e:
+        raise Exception(f"Error al cargar las credenciales: {e}")
 
 @app.route('/upload', methods=['POST'])
 def detectar_puntos_y_procesar_imagenes():
@@ -79,22 +83,46 @@ def detectar_puntos_y_procesar_imagenes():
                         draw_puntos.line((x - size, y - size, x + size, y + size), fill=color, width=thickness)
                         draw_puntos.line((x - size, y + size, x + size, y - size), fill=color, width=thickness)
 
-                        # Dibujar en la imagen con brillo aumentado
-                        draw_brillo = ImageDraw.Draw(imagen_brillo)
-                        draw_brillo.line((x - size, y - size, x + size, y + size), fill=color, width=thickness)
-                        draw_brillo.line((x - size, y + size, x + size, y - size), fill=color, width=thickness)
+    TRADUCCION_EMOCIONES = {
+        "angry": "enojado",
+        "disgust": "disgustado",
+        "fear": "miedo",
+        "happy": "feliz",
+        "sad": "triste",
+        "surprise": "sorprendido",
+        "neutral": "neutral"
+    }
 
-                        # Dibujar en la imagen girada horizontalmente
-                        draw_girada_horizontal = ImageDraw.Draw(imagen_girada_horizontal)
-                        x_girado_horizontal = w - x  # Coordenada X reflejada
-                        draw_girada_horizontal.line((x_girado_horizontal - size, y - size, x_girado_horizontal + size, y + size), fill=color, width=thickness)
-                        draw_girada_horizontal.line((x_girado_horizontal - size, y + size, x_girado_horizontal + size, y - size), fill=color, width=thickness)
+    try:
+        # Convertir archivo en un array de NumPy
+        archivo.seek(0)  # Asegúrate de volver al inicio del archivo
 
-                        # Dibujar en la imagen girada verticalmente
-                        draw_girada_vertical = ImageDraw.Draw(imagen_girada_vertical)
-                        y_girado_vertical = h - y  # Coordenada Y reflejada
-                        draw_girada_vertical.line((x - size, y_girado_vertical - size, x + size, y_girado_vertical + size), fill=color, width=thickness)
-                        draw_girada_vertical.line((x - size, y_girado_vertical + size, x + size, y_girado_vertical - size), fill=color, width=thickness)
+        # Convertir la imagen original en un objeto PIL
+        imagen_pil = Image.open(archivo).convert('RGB')
+
+        # Mejorar el contraste
+        enhancer_contrast = ImageEnhance.Contrast(imagen_pil)
+        imagen_contrast = enhancer_contrast.enhance(1.5)  # Factor 1.5 para mejorar el contraste
+
+        # Mejorar la nitidez
+        enhancer_sharpness = ImageEnhance.Sharpness(imagen_contrast)
+        imagen_mejorada = enhancer_sharpness.enhance(2.0)  # Factor 2.0 para mejorar la nitidez
+
+        # Convertir la imagen mejorada a un array de NumPy
+        image_np_mejorada = np.array(imagen_mejorada)
+
+        # Analizar emociones con DeepFace
+        resultado_emocion = DeepFace.analyze(img_path=image_np_mejorada, actions=['emotion'], enforce_detection=False)
+
+        # Accede al primer elemento de la lista y traduce la emoción
+        emocion_principal_en = resultado_emocion[0]['dominant_emotion']
+        emocion_principal = TRADUCCION_EMOCIONES.get(emocion_principal_en, emocion_principal_en)
+    except Exception as e:
+        emocion_principal = f"Error detectando emociones: {str(e)}"
+
+
+
+
 
     # Convertir las imágenes procesadas a base64
     def convertir_a_base64(imagen):
@@ -103,9 +131,6 @@ def detectar_puntos_y_procesar_imagenes():
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
     img_data_puntos = convertir_a_base64(imagen_con_puntos)
-    img_data_brillo = convertir_a_base64(imagen_brillo)
-    img_data_girada_horizontal = convertir_a_base64(imagen_girada_horizontal)
-    img_data_girada_vertical = convertir_a_base64(imagen_girada_vertical)
 
     # Subir la imagen original a Google Drive
     service = obtener_servicio_drive()
@@ -119,8 +144,6 @@ def detectar_puntos_y_procesar_imagenes():
 
     return jsonify({
         'image_with_points_base64': img_data_puntos,
-        'image_with_brightness_and_points_base64': img_data_brillo,
-        'image_with_flip_horizontal_and_points_base64': img_data_girada_horizontal,
-        'image_with_flip_vertical_and_points_base64': img_data_girada_vertical,
+        'dominant_emotion': emocion_principal,
         'drive_id': archivo_drive_subido.get('id')
     })
