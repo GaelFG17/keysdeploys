@@ -11,3 +11,4 @@ imageio
 imageio-ffmpeg
 opencv-python
 random2
+python-dotenv
