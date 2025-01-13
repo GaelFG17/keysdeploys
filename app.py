@@ -28,6 +28,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 # ID de la carpeta donde deseas subir la imagen
 FOLDER_ID = '1v8Xss5sKEEgyPHfEBtXYBTHtUevdrhjd'
 
+deepface_model = DeepFace.build_model("VGG-Face")
 
 # Inicializar el servicio de Google Drive
 def obtener_servicio_drive():
@@ -111,7 +112,12 @@ def detectar_puntos_y_procesar_imagenes():
         image_np_mejorada = np.array(imagen_mejorada)
 
         # Analizar emociones con DeepFace
-        resultado_emocion = DeepFace.analyze(img_path=image_np_mejorada, actions=['emotion'], enforce_detection=False)
+        resultado_emocion = DeepFace.analyze(
+            img_path=image_np_mejorada,
+            actions=['emotion'],
+            enforce_detection=False,
+            models={"emotion": deepface_model}
+        )
 
         # Accede al primer elemento de la lista y traduce la emoción
         emocion_principal_en = resultado_emocion[0]['dominant_emotion']
