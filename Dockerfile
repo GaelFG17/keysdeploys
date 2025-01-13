@@ -29,7 +29,6 @@ RUN mkdir -p static/uploads
 # Variables de entorno
 ENV PORT=10000
 ENV PYTHONUNBUFFERED=1
-ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 # Exponer el puerto
 EXPOSE ${PORT}
