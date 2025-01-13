@@ -13,6 +13,7 @@ from googleapiclient.http import MediaIoBaseUpload
 from dotenv import load_dotenv
 from PIL import ImageEnhance
 import random
+from deepface import DeepFace  # Importar DeepFace
 
 app = Flask(__name__)
 CORS(app)
