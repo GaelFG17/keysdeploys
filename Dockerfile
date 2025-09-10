@@ -3,16 +3,16 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libgstreamer1.0-0 \
     gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-good \
-    && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements.txt
 COPY requirements.txt .
@@ -35,4 +35,3 @@ EXPOSE ${PORT}
 
 # Comando para ejecutar la aplicación
 CMD gunicorn --bind 0.0.0.0:$PORT app:app --timeout 300 --workers 1
-
